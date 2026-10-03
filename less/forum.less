@@ -12,12 +12,9 @@
   padding: 16px 18px 8px;
   border: 1px solid var(--control-bg);
   border-radius: var(--border-radius, 6px);
-  background: var(--body-bg);
-
-  // Line up with the posts' text, not the avatars, on wide screens.
-  @media @tablet-up {
-    margin-left: 90px;
-  }
+  // The surface boxed posts sit on when the theme has one (Bespoke), the
+  // page itself otherwise.
+  background: var(--bespoke-color-surface, var(--body-bg));
 }
 
 .Kindred-heading {
@@ -47,10 +44,13 @@
   border-top: 1px solid var(--control-bg);
 }
 
-.Kindred-link {
+// Specific enough to beat a theme's blanket rule for links (Bespoke's is
+// `:root:not([data-theme^="dark"]) a:not(.Button)`), so the titles read like
+// the discussion list's rather than a wall of link colour.
+.Kindred .Kindred-list .Kindred-item a.Kindred-link {
   display: block;
   padding: 10px 0;
-  color: var(--text-color);
+  color: var(--heading-color, var(--text-color));
   text-decoration: none;
 
   &:hover,
@@ -65,6 +65,7 @@
 
 .Kindred-title {
   display: block;
+  color: inherit;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.35;
