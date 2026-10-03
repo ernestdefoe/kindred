@@ -17,6 +17,9 @@ use Illuminate\Database\ConnectionInterface;
  */
 class Matcher
 {
+    /** Bumped when scoring changes, so cached answers from before are redone. */
+    public const VERSION = 2;
+
     /** How long a discussion's list is kept. */
     public const TTL = 6 * 3600;
 
@@ -25,10 +28,10 @@ class Matcher
     public const KEEP = 30;
 
     /** Below this much of the title in common, it isn't similar. */
-    public const MIN_TEXT = 0.2;
+    public const MIN_TEXT = 0.25;
 
     /** Below this overall, it isn't worth a row. */
-    public const MIN_SCORE = 0.3;
+    public const MIN_SCORE = 0.4;
 
     public const TAG_BOOST = 0.15;
     public const MAX_TAG_BOOST = 0.3;
@@ -59,9 +62,10 @@ class Matcher
      */
     public function candidatesFor(Discussion $discussion): array
     {
-        // Changing the ignored words changes every answer, so the cached one
-        // carries the list it was worked out with.
-        $signature = md5($this->stopwords->extraSetting());
+        // Changing the ignored words (or how scoring works, in an update)
+        // changes every answer, so the cached one carries what it was worked
+        // out with.
+        $signature = md5(self::VERSION.'|'.$this->stopwords->extraSetting());
         $cached = $this->cache->get(self::cacheKey((int) $discussion->id));
 
         if (is_array($cached) && ($cached['sig'] ?? null) === $signature && is_array($cached['ids'] ?? null)) {
