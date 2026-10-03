@@ -1,0 +1,127 @@
+// Kindred — similar discussions. Theme variables only, so it sits in the
+// default theme, Bespoke and dark mode without its own palette.
+
+.Kindred--empty {
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.Kindred--foot:not(.Kindred--empty) {
+  margin: 30px 0 10px;
+  padding: 16px 18px 8px;
+  border: 1px solid var(--control-bg);
+  border-radius: var(--border-radius, 6px);
+  background: var(--body-bg);
+
+  // Line up with the posts' text, not the avatars, on wide screens.
+  @media @tablet-up {
+    margin-left: 90px;
+  }
+}
+
+.Kindred-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-color);
+}
+
+.Kindred-headingIcon {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.Kindred-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.Kindred-item + .Kindred-item {
+  border-top: 1px solid var(--control-bg);
+}
+
+.Kindred-link {
+  display: block;
+  padding: 10px 0;
+  color: var(--text-color);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+
+    .Kindred-title {
+      color: var(--link-color, var(--primary-color));
+    }
+  }
+}
+
+.Kindred-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  transition: color 0.15s;
+}
+
+.Kindred-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted-color);
+
+  .icon {
+    margin-right: 4px;
+  }
+}
+
+.Kindred-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  .TagLabel {
+    font-size: 11px;
+  }
+}
+
+// The sidebar copy: wide screens only, compact, under the discussion controls.
+.Kindred--sidebar:not(.Kindred--empty) {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--control-bg);
+
+  .Kindred-heading {
+    font-size: 12px;
+  }
+
+  .Kindred-link {
+    padding: 7px 0;
+  }
+
+  .Kindred-title {
+    font-size: 13px;
+  }
+
+  .Kindred-meta {
+    margin-top: 3px;
+    font-size: 11px;
+  }
+}
+
+@media @phone, @tablet {
+  .DiscussionPage-nav .item-kindred {
+    display: none;
+  }
+}
