@@ -12,6 +12,7 @@
     "license": "MIT",
     "homepage": "https://github.com/ernestdefoe/kindred",
     "support": {
+        "forum": "https://discuss.flarum.org/d/39991-kindred",
         "issues": "https://github.com/ernestdefoe/kindred/issues",
         "source": "https://github.com/ernestdefoe/kindred"
     },
