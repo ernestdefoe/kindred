@@ -61,6 +61,10 @@ composer update ernestdefoe/kindred
 php flarum cache:clear
 ```
 
+## Discuss
+
+Questions, ideas and release notes: [Kindred on discuss.flarum.org](https://discuss.flarum.org/d/39991-kindred).
+
 ## Licence
 
 MIT.
