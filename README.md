@@ -61,9 +61,11 @@ composer update ernestdefoe/kindred
 php flarum cache:clear
 ```
 
-## Discuss
+## Support
 
-Questions, ideas and release notes: [Kindred on discuss.flarum.org](https://discuss.flarum.org/d/39991-kindred).
+- **Support forum:** [Kindred on ernestdefoe.online](https://ernestdefoe.online/d/110)
+- **Flarum community:** [Kindred on discuss.flarum.org](https://discuss.flarum.org/d/39991-kindred)
+- **Bug reports:** [GitHub issues](https://github.com/ernestdefoe/kindred/issues)
 
 ## Licence
 
