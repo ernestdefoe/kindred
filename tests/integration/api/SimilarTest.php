@@ -4,13 +4,13 @@ namespace Ernestdefoe\Kindred\Tests\integration\api;
 
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\Tags\Tag;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Str;
-use Flarum\Settings\SettingsRepositoryInterface;
 use PHPUnit\Framework\Attributes\Test;
 
 class SimilarTest extends TestCase
