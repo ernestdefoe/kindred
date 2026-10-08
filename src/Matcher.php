@@ -203,9 +203,11 @@ class Matcher
             ->where('is_private', false)
             ->where(function ($query) use ($top) {
                 foreach ($top as $word) {
-                    // The stem, so "recipe" finds "recipes" too.
+                    // The stem, so "recipe" finds "recipes" too. Case-insensitive
+                    // on every driver: PostgreSQL's LIKE is case-sensitive, so
+                    // a capitalised word never matched there.
                     $stem = addcslashes($this->keywords->stem($word), '\\%_');
-                    $query->orWhere('title', 'like', '%'.$stem.'%');
+                    $query->orWhereLike('title', '%'.$stem.'%');
                 }
             })
             ->orderByDesc('last_posted_at')
