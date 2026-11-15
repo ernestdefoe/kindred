@@ -47,7 +47,10 @@
                 "name": "fas fa-layer-group",
                 "backgroundColor": "#0f766e",
                 "color": "#fff"
-            }
+            },
+            "optional-dependencies": [
+                "flarum/tags"
+            ]
         }
     },
     "require-dev": {

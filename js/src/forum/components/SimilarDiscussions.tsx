@@ -1,11 +1,19 @@
 import app from 'flarum/forum/app';
-import Component from 'flarum/common/Component';
+import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Link from 'flarum/common/components/Link';
 import Icon from 'flarum/common/components/Icon';
 import humanTime from 'flarum/common/helpers/humanTime';
 import classList from 'flarum/common/utils/classList';
 import textContrastClass from 'flarum/common/helpers/textContrastClass';
+import type Mithril from 'mithril';
+import type Discussion from 'flarum/common/models/Discussion';
+import type { KindredTag } from '../../common/types';
 import { stateFor, load } from '../similar';
+
+export interface SimilarDiscussionsAttrs extends ComponentAttrs {
+  discussion: Discussion;
+  variant?: 'foot' | 'sidebar';
+}
 
 /**
  * "Similar discussions": a calm card of links.
@@ -14,21 +22,22 @@ import { stateFor, load } from '../similar';
  * its own (empty, zero-height) placeholder — and draws nothing at all when
  * there is nothing similar.
  *
- * Attrs: discussion, variant ('foot' | 'sidebar')
  */
-export default class SimilarDiscussions extends Component {
-  oncreate(vnode) {
+export default class SimilarDiscussions extends Component<SimilarDiscussionsAttrs> {
+  observer?: IntersectionObserver;
+
+  oncreate(vnode: Mithril.VnodeDOM<SimilarDiscussionsAttrs, this>) {
     super.oncreate(vnode);
     this.watch(vnode.dom);
   }
 
-  onremove(vnode) {
+  onremove(vnode: Mithril.VnodeDOM<SimilarDiscussionsAttrs, this>) {
     super.onremove(vnode);
     if (this.observer) this.observer.disconnect();
   }
 
-  watch(dom) {
-    const id = this.attrs.discussion.id();
+  watch(dom: Element) {
+    const id = this.attrs.discussion.id()!;
 
     if (stateFor(id).status !== 'idle') return;
 
@@ -41,7 +50,7 @@ export default class SimilarDiscussions extends Component {
     this.observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          this.observer.disconnect();
+          this.observer?.disconnect();
           load(id);
         }
       },
@@ -52,7 +61,7 @@ export default class SimilarDiscussions extends Component {
 
   view() {
     const variant = this.attrs.variant || 'foot';
-    const state = stateFor(this.attrs.discussion.id());
+    const state = stateFor(this.attrs.discussion.id()!);
     const items = state.status === 'done' ? state.items : [];
 
     if (!items.length) {
@@ -92,8 +101,8 @@ export default class SimilarDiscussions extends Component {
   }
 
   /** The same markup flarum/tags draws, so the theme styles it — but a span, inside our link. */
-  tagLabel(tag) {
-    const style = {};
+  tagLabel(tag: KindredTag) {
+    const style: Record<string, string> = {};
     let className = 'TagLabel';
 
     if (tag.color) {

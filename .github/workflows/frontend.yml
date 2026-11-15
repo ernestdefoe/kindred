@@ -8,7 +8,11 @@ jobs:
     with:
       enable_bundlewatch: false
       enable_prettier: true
-      enable_typescript: false
+      # check-typings: js/src against core's typings in vendor/. Kindred
+      # publishes no typings of its own, so nothing to build or measure.
+      enable_typescript: true
+      build_typings_script: ''
+      type_coverage_script: ''
 
       frontend_directory: ./js
       backend_directory: .

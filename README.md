@@ -64,6 +64,10 @@ php flarum cache:clear
 
 Kindred indexes each title as it is posted or renamed. If discussions were started while Kindred was disabled, `php flarum kindred:index` indexes them (`--fresh` rebuilds the whole index).
 
+## API
+
+`GET /api/kindred/{id}` returns the similar discussions for discussion `{id}` that the current reader may see, as `{"data": [{id, title, slug, replyCount, lastPostedAt, tags}]}`. It is a plain endpoint rather than a JSON:API resource because it is one computed answer about a discussion, not a list of models to page, filter or include. It returns 404 for a discussion the reader cannot see.
+
 ## Support
 
 - **Support forum:** [Kindred on ernestdefoe.online](https://ernestdefoe.online/d/110)

@@ -1,6 +1,6 @@
 import app from 'flarum/admin/app';
 
-const t = (key) => app.translator.trans(`ernestdefoe-kindred.admin.${key}`);
+const t = (key: string) => app.translator.trans(`ernestdefoe-kindred.admin.${key}`);
 
 app.initializers.add('ernestdefoe-kindred', () => {
   app.registry

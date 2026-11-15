@@ -16,6 +16,9 @@ return [
 
     new Extend\Locales(__DIR__.'/locale'),
 
+    // One computed, reader-narrowed answer about a discussion, not a model
+    // collection, so a plain handler rather than a JSON:API resource (see
+    // SimilarController for why).
     (new Extend\Routes('api'))
         ->get('/kindred/{id}', 'ernestdefoe-kindred.similar', SimilarController::class),
 

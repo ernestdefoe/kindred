@@ -1,4 +1,11 @@
 import app from 'flarum/forum/app';
+import type { KindredItem, KindredResponse } from '../common/types';
+
+export interface SimilarState {
+  id: string;
+  status: 'idle' | 'loading' | 'done';
+  items: KindredItem[];
+}
 
 /**
  * One answer per discussion, shared by the foot of the page and the sidebar,
@@ -7,9 +14,9 @@ import app from 'flarum/forum/app';
  * Kept only for the discussion being read: open another and the old one goes,
  * so coming back asks again (and sees anything new since).
  */
-let current = null;
+let current: SimilarState | null = null;
 
-export function stateFor(discussionId) {
+export function stateFor(discussionId: string): SimilarState {
   if (!current || current.id !== discussionId) {
     current = { id: discussionId, status: 'idle', items: [] };
   }
@@ -17,14 +24,14 @@ export function stateFor(discussionId) {
   return current;
 }
 
-export function load(discussionId) {
+export function load(discussionId: string): void {
   const state = stateFor(discussionId);
   if (state.status !== 'idle') return;
 
   state.status = 'loading';
 
   app
-    .request({
+    .request<KindredResponse>({
       method: 'GET',
       url: `${app.forum.attribute('apiUrl')}/kindred/${encodeURIComponent(discussionId)}`,
       // A missing list is never worth an error alert on someone's reading.

@@ -10,6 +10,7 @@ use Flarum\Http\RequestUtil;
 use Flarum\Http\SlugManager;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -19,6 +20,14 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * GET /api/kindred/{id} — the discussions similar to this one that the reader
  * may see, best first. An empty list means "show nothing".
+ *
+ * A plain handler on purpose, not a JSON:API resource: this is not a list of
+ * a model a client can page, sort, filter or include, but one computed answer
+ * about a discussion (a ranked, cached match narrowed to the reader), sent as
+ * a small flat payload with only the fields the card draws. As a resource it
+ * would serialize full discussion models and their tag relationships for a
+ * card that needs a title and a link. Visibility is still core's: the
+ * discussion and every result go through whereVisibleTo($actor).
  */
 class SimilarController implements RequestHandlerInterface
 {
@@ -27,6 +36,7 @@ class SimilarController implements RequestHandlerInterface
         protected SettingsRepositoryInterface $settings,
         protected SlugManager $slugs,
         protected ExtensionManager $extensions,
+        protected ConnectionInterface $db,
     ) {
     }
 
@@ -97,7 +107,7 @@ class SimilarController implements RequestHandlerInterface
         }
 
         $tagClass = \Flarum\Tags\Tag::class;
-        $pivot = resolve('db')->table('discussion_tag')
+        $pivot = $this->db->table('discussion_tag')
             ->whereIn('discussion_id', array_map(fn ($d) => $d->id, $rows))
             ->get(['discussion_id', 'tag_id']);
 

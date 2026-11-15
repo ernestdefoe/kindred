@@ -1,9 +1,12 @@
 import app from 'flarum/forum/app';
 import { extend } from 'flarum/common/extend';
+import type Mithril from 'mithril';
+import type DiscussionPage from 'flarum/forum/components/DiscussionPage';
+import type ItemList from 'flarum/common/utils/ItemList';
 import SimilarDiscussions from './components/SimilarDiscussions';
 
 /** The element with this class among a vnode's children, searched depth-first. */
-function findByClass(vnode, className, depth = 0) {
+function findByClass(vnode: any, className: string, depth = 0): Mithril.Vnode<any, any> | null {
   if (!vnode || typeof vnode !== 'object' || depth > 6) return null;
   const attrs = vnode.attrs || {};
   const cls = String(attrs.className || attrs.class || '');
@@ -25,7 +28,7 @@ app.initializers.add('ernestdefoe-kindred', () => {
    * stream holds the discussion's last post — before that, the end is
    * somewhere the reader hasn't got to.
    */
-  extend('flarum/forum/components/DiscussionPage', 'view', function (vnode) {
+  extend('flarum/forum/components/DiscussionPage', 'view', function (this: DiscussionPage, vnode: Mithril.Children) {
     try {
       const discussion = this.discussion;
       const stream = this.stream;
@@ -45,7 +48,7 @@ app.initializers.add('ernestdefoe-kindred', () => {
    * Optionally the sidebar too, on wide screens (the sidebar folds away on
    * phones, and CSS hides it there). Off by default.
    */
-  extend('flarum/forum/components/DiscussionPage', 'sidebarItems', function (items) {
+  extend('flarum/forum/components/DiscussionPage', 'sidebarItems', function (this: DiscussionPage, items: ItemList<Mithril.Children>) {
     try {
       if (!this.discussion || !app.forum.attribute('kindredSidebar')) return;
       items.add('kindred', <SimilarDiscussions discussion={this.discussion} variant="sidebar" />, -110);
