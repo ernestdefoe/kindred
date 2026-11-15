@@ -3,6 +3,7 @@
 namespace Ernestdefoe\Kindred\Tests\integration\api;
 
 use Carbon\Carbon;
+use Ernestdefoe\Kindred\WordIndex;
 use Flarum\Discussion\Discussion;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\Tags\Tag;
@@ -10,6 +11,7 @@ use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -64,6 +66,10 @@ class SimilarTest extends TestCase
             $this->app()->getContainer()->make(Repository::class)->flush();
             $this->cacheCleared = true;
         }
+
+        // Fixtures go straight into the database, past the save hook that
+        // indexes a title; index those the way the migration does.
+        $this->app()->getContainer()->make(WordIndex::class)->fill();
 
         $response = $this->send($this->request('GET', "/api/kindred/$id", $actor ? ['authenticatedAs' => $actor] : []));
 
@@ -225,6 +231,86 @@ class SimilarTest extends TestCase
 
         $this->assertSame(200, $status);
         $this->assertGreaterThan(15, count($body['data']));
+    }
+
+    #[Test]
+    public function a_word_inside_another_word_is_not_a_match()
+    {
+        $this->prepareDatabase([
+            Discussion::class => [
+                $this->discussion(42, 'Pan sizes'),
+                $this->discussion(43, 'Spanish omelette guide'),
+                $this->discussion(44, 'Which pan'),
+            ],
+        ]);
+
+        $titles = $this->titles(42);
+        $this->assertContains('Which pan', $titles);
+        $this->assertNotContains('Spanish omelette guide', $titles, '"pan" is in "Spanish", but it is not the same word');
+    }
+
+    #[Test]
+    public function a_discussion_started_through_the_forum_is_indexed_and_matched()
+    {
+        $response = $this->send($this->request('POST', '/api/discussions', [
+            'authenticatedAs' => 1,
+            'json' => ['data' => [
+                'type' => 'discussions',
+                'attributes' => ['title' => 'Feeding a sourdough starter', 'content' => 'How often?'],
+                'relationships' => ['tags' => ['data' => [['type' => 'tags', 'id' => '1']]]],
+            ]],
+        ]));
+        $this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+        $id = (int) json_decode((string) $response->getBody(), true)['data']['id'];
+
+        $words = $this->db()->table('kindred_words')->where('discussion_id', $id)->orderBy('word')->pluck('word')->all();
+        $this->assertSame(['feeding', 'sourdough', 'starter'], $words, 'Saved on creation, stopwords left out');
+
+        $this->assertContains('Feeding a sourdough starter', $this->titles(2));
+    }
+
+    #[Test]
+    public function a_reply_leaves_the_words_alone_and_a_deleted_discussion_takes_them_with_it()
+    {
+        $this->titles(1);
+        $index = $this->app()->getContainer()->make(WordIndex::class);
+        $before = $this->db()->table('kindred_words')->where('discussion_id', 3)->count();
+        $this->assertGreaterThan(0, $before);
+
+        // A counter-only save, as every reply makes, must not rewrite the words.
+        $this->db()->table('kindred_words')->where('discussion_id', 3)->delete();
+        $discussion = Discussion::find(3);
+        $discussion->comment_count = 4;
+        $discussion->save();
+        $this->assertSame(0, $this->db()->table('kindred_words')->where('discussion_id', 3)->count());
+
+        // The test harness turns SQLite's foreign keys off for the whole test
+        // (a forum has them on: core's own cascades depend on it).
+        if ($this->db()->getDriverName() === 'sqlite') {
+            return;
+        }
+
+        $index->index(3, 'Sourdough bread crust');
+        Discussion::find(3)->delete();
+        $this->assertSame(0, $this->db()->table('kindred_words')->where('discussion_id', 3)->count());
+    }
+
+    #[Test]
+    public function the_index_command_fills_in_titles_and_rebuilds_on_request()
+    {
+        $this->titles(1);
+        $this->db()->table('kindred_words')->where('discussion_id', 4)->delete();
+
+        $index = $this->app()->getContainer()->make(WordIndex::class);
+        $this->assertSame(1, $index->fill(), 'Only the one without words');
+        $this->assertSame(['bicycle', 'gear', 'slipping'], $this->db()->table('kindred_words')->where('discussion_id', 4)->orderBy('word')->pluck('word')->all());
+
+        $this->assertSame(Discussion::count(), $index->fill(true), 'Fresh: every one');
+    }
+
+    private function db(): ConnectionInterface
+    {
+        return $this->app()->getContainer()->make(ConnectionInterface::class);
     }
 
     #[Test]

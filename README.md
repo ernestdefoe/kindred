@@ -21,7 +21,7 @@ It uses your theme's own colours, so it fits the default theme, Bespoke and dark
 ## How it decides what's similar
 
 - **The words in the title.** Kindred takes the words that say what a discussion is about: lowercased, punctuation gone, common English words like "the", "best" and "question" left out, and nothing under three letters. "Recipe" and "recipes" count as the same word.
-- **Your database does the matching.** On MySQL and MariaDB it uses the FULLTEXT index Flarum already keeps on discussion titles, so rare words count for more than common ones. Without one (SQLite, PostgreSQL) it falls back to matching the title's four longest words.
+- **Your database does the matching.** On MySQL and MariaDB it uses the FULLTEXT index Flarum already keeps on discussion titles, so rare words count for more than common ones. Without one (SQLite, PostgreSQL) it uses its own index of every title's words, so the lookup stays fast however many discussions you have.
 - **Shared tags and recent activity** move a match up the list. Neither is enough on its own: a discussion has to share enough of the title first.
 
 ## Who sees what
@@ -58,8 +58,11 @@ Then enable **Kindred** in the admin panel.
 
 ```bash
 composer update ernestdefoe/kindred
+php flarum migrate
 php flarum cache:clear
 ```
+
+Kindred indexes each title as it is posted or renamed. If discussions were started while Kindred was disabled, `php flarum kindred:index` indexes them (`--fresh` rebuilds the whole index).
 
 ## Support
 

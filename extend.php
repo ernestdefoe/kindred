@@ -1,6 +1,7 @@
 <?php
 
 use Ernestdefoe\Kindred\Api\SimilarController;
+use Ernestdefoe\Kindred\Console\IndexCommand;
 use Ernestdefoe\Kindred\ForgetOnRename;
 use Flarum\Discussion\Event\Renamed;
 use Flarum\Extend;
@@ -20,7 +21,12 @@ return [
 
     // A renamed discussion matches different things; its cached list goes.
     (new Extend\Event())
-        ->listen(Renamed::class, ForgetOnRename::class),
+        ->listen(Renamed::class, ForgetOnRename::class)
+        // Each title's words, for matching without a scan of every title.
+        ->listen('eloquent.saved: Flarum\\Discussion\\Discussion', 'Ernestdefoe\\Kindred\\WordIndex@saved'),
+
+    (new Extend\Console())
+        ->command(IndexCommand::class),
 
     (new Extend\Settings())
         ->default('ernestdefoe-kindred.limit', 5)

@@ -18,7 +18,7 @@ use Illuminate\Database\ConnectionInterface;
 class Matcher
 {
     /** Bumped when scoring changes, so cached answers from before are redone. */
-    public const VERSION = 2;
+    public const VERSION = 3;
 
     /** How long a discussion's list is kept. */
     public const TTL = 6 * 3600;
@@ -47,6 +47,7 @@ class Matcher
         protected Keywords $keywords,
         protected Stopwords $stopwords,
         protected ExtensionManager $extensions,
+        protected WordIndex $index,
     ) {
     }
 
@@ -100,7 +101,7 @@ class Matcher
         // No index, or one that found nothing to compare against (every word
         // was a stopword to the database): match on the words directly.
         if ($text === null) {
-            $text = $this->byLike($discussion, $words);
+            $text = $this->byIndex($discussion, $words);
         }
 
         if (! $text) {
@@ -184,46 +185,45 @@ class Matcher
     }
 
     /**
-     * Without a FULLTEXT index: titles containing any of the four longest
-     * words, scored by how much of this title's vocabulary they share.
+     * Without a FULLTEXT index: the discussions whose titles share this one's
+     * words, from the word index (an indexed lookup per word, never a scan of
+     * every title), scored by how much of this title's vocabulary they share.
      *
      * @param list<string> $words
      * @return array<int, float>
      */
-    protected function byLike(Discussion $discussion, array $words): array
+    protected function byIndex(Discussion $discussion, array $words): array
     {
-        $top = $words;
-        usort($top, fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
-        $top = array_slice($top, 0, 4);
+        // Indexed when Kindred was off, or before it was installed and the
+        // index filled: catch this one up.
+        if (! $this->index->has((int) $discussion->id)) {
+            $this->index->index((int) $discussion->id, (string) $discussion->title);
+        }
 
-        $rows = $this->db->table('discussions')
-            ->select('id', 'title')
-            ->where('id', '!=', $discussion->id)
-            ->whereNull('hidden_at')
-            ->where('is_private', false)
-            ->where(function ($query) use ($top) {
-                foreach ($top as $word) {
-                    // The stem, so "recipe" finds "recipes" too. Case-insensitive
-                    // on every driver: PostgreSQL's LIKE is case-sensitive, so
-                    // a capitalised word never matched there.
-                    $stem = addcslashes($this->keywords->stem($word), '\\%_');
-                    $query->orWhereLike('title', '%'.$stem.'%');
-                }
-            })
-            ->orderByDesc('last_posted_at')
+        $ours = array_values(array_unique(array_map([$this->index, 'key'], $words)));
+        $table = WordIndex::TABLE;
+
+        // Fewer shared words than this can never reach MIN_TEXT.
+        $needed = max(1, (int) ceil(count($ours) * self::MIN_TEXT));
+
+        $rows = $this->db->table($table)
+            ->join('discussions', 'discussions.id', '=', $table.'.discussion_id')
+            ->whereIn($table.'.word', $ours)
+            ->where($table.'.discussion_id', '!=', $discussion->id)
+            ->whereNull('discussions.hidden_at')
+            ->where('discussions.is_private', false)
+            ->groupBy($table.'.discussion_id')
+            ->havingRaw('count(*) >= ?', [$needed])
+            ->select($table.'.discussion_id')
+            ->selectRaw('count(*) as shared')
+            ->orderByDesc('shared')
+            ->orderByRaw('max('.$this->db->getQueryGrammar()->wrap('discussions.last_posted_at').') desc')
             ->limit(300)
             ->get();
 
-        $ours = array_unique(array_map([$this->keywords, 'stem'], $words));
         $out = [];
-
         foreach ($rows as $row) {
-            $theirs = array_unique(array_map([$this->keywords, 'stem'], $this->keywords->of((string) $row->title)));
-            $shared = count(array_intersect($ours, $theirs));
-
-            if ($shared) {
-                $out[(int) $row->id] = $shared / count($ours);
-            }
+            $out[(int) $row->discussion_id] = min(1.0, (int) $row->shared / count($ours));
         }
 
         return $out;
@@ -251,7 +251,7 @@ class Matcher
 
     /**
      * Whether discussions.title carries a FULLTEXT index. Core adds one on
-     * MySQL and MariaDB; SQLite and PostgreSQL go the LIKE way.
+     * MySQL and MariaDB; SQLite and PostgreSQL use the word index.
      */
     public function hasFulltextIndex(): bool
     {
