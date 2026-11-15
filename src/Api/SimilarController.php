@@ -43,7 +43,7 @@ class SimilarController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
-        $id = (int) Arr::get($request->getQueryParams(), 'id');
+        $id = (int) Arr::get($request->getAttribute('routeParameters', []), 'id');
 
         // The reader must be able to see the discussion they're asking about;
         // otherwise this is a 404, the same as the discussion itself.
@@ -55,30 +55,7 @@ class SimilarController implements RequestHandlerInterface
             return new JsonResponse(['data' => []]);
         }
 
-        $limit = max(1, min(20, (int) $this->settings->get('ernestdefoe-kindred.limit', 5) ?: 5));
-        $maxAge = max(0, (int) $this->settings->get('ernestdefoe-kindred.max_age_days', 0));
-
-        // Never trust the cache with permissions: what this reader may see is
-        // asked fresh, every time.
-        $query = Discussion::whereVisibleTo($actor)
-            ->whereIn('discussions.id', array_keys($candidates))
-            ->where('discussions.id', '!=', $discussion->id);
-
-        if ($maxAge > 0) {
-            $query->where('discussions.last_posted_at', '>=', Carbon::now()->subDays($maxAge));
-        }
-
-        $visible = $query->get()->keyBy('id');
-
-        $rows = [];
-        foreach (array_keys($candidates) as $candidateId) {
-            if (isset($visible[$candidateId])) {
-                $rows[] = $visible[$candidateId];
-            }
-            if (count($rows) >= $limit) {
-                break;
-            }
-        }
+        $rows = $this->visibleCandidates($discussion, array_keys($candidates), $actor);
 
         $tags = $this->extensions->isEnabled('flarum-tags') ? $this->visibleTags($rows, $actor) : [];
 
@@ -92,6 +69,43 @@ class SimilarController implements RequestHandlerInterface
                 'tags' => $tags[$d->id] ?? [],
             ], $rows),
         ]);
+    }
+
+    /**
+     * The candidates this reader may see, in the matcher's order, up to the
+     * forum's limit and within its age limit.
+     *
+     * @param list<int> $ids
+     * @return list<Discussion>
+     */
+    protected function visibleCandidates(Discussion $discussion, array $ids, User $actor): array
+    {
+        $limit = max(1, min(20, (int) $this->settings->get('ernestdefoe-kindred.limit', 5) ?: 5));
+        $maxAge = max(0, (int) $this->settings->get('ernestdefoe-kindred.max_age_days', 0));
+
+        // Never trust the cache with permissions: what this reader may see is
+        // asked fresh, every time.
+        $query = Discussion::whereVisibleTo($actor)
+            ->whereIn('discussions.id', $ids)
+            ->where('discussions.id', '!=', $discussion->id);
+
+        if ($maxAge > 0) {
+            $query->where('discussions.last_posted_at', '>=', Carbon::now()->subDays($maxAge));
+        }
+
+        $visible = $query->get()->keyBy('id');
+
+        $rows = [];
+        foreach ($ids as $candidateId) {
+            if (isset($visible[$candidateId])) {
+                $rows[] = $visible[$candidateId];
+            }
+            if (count($rows) >= $limit) {
+                break;
+            }
+        }
+
+        return $rows;
     }
 
     /**

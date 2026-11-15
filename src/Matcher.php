@@ -7,6 +7,7 @@ use Flarum\Discussion\Discussion;
 use Flarum\Extension\ExtensionManager;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Database\ConnectionInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Which discussions are about the same thing as this one, best first.
@@ -48,6 +49,7 @@ class Matcher
         protected Stopwords $stopwords,
         protected ExtensionManager $extensions,
         protected WordIndex $index,
+        protected LoggerInterface $log,
     ) {
     }
 
@@ -275,7 +277,10 @@ class Matcher
                         return 1;
                     }
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                // No way to tell: match through the word index, which works
+                // everywhere, and say why the faster path isn't used.
+                $this->log->warning('Kindred could not check discussions.title for a FULLTEXT index: '.$e->getMessage());
             }
 
             return 0;
