@@ -101,10 +101,4 @@ class WordIndex
             $this->db->table(self::TABLE)->insertOrIgnore($batch);
         }
     }
-
-    /** A new discussion's words (renames go through OnRename). */
-    public function created(Discussion $discussion): void
-    {
-        $this->index((int) $discussion->id, (string) $discussion->title);
-    }
 }

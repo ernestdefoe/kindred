@@ -220,6 +220,24 @@ class SimilarTest extends TestCase
     }
 
     #[Test]
+    public function a_title_changed_without_the_api_is_matched_again()
+    {
+        // An importer or another extension saving the model directly, with no Renamed event.
+        $this->assertContains('Sourdough bread crust', $this->titles(1, 1));
+
+        $discussion = Discussion::find(1);
+        $discussion->title = 'Bicycle gears';
+        $discussion->save();
+
+        $words = $this->db()->table('kindred_words')->where('discussion_id', 1)->orderBy('word')->pluck('word')->all();
+        $expected = $this->app()->getContainer()->make(WordIndex::class)->keysOf('Bicycle gears');
+        sort($expected);
+        $this->assertSame($expected, $words);
+
+        $this->assertSame(['Bicycle gears slipping'], $this->titles(1, 1), 'The cached list was dropped');
+    }
+
+    #[Test]
     public function many_results_take_a_fixed_number_of_queries()
     {
         $this->setting('ernestdefoe-kindred.limit', 20);
