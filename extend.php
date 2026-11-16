@@ -2,7 +2,7 @@
 
 use Ernestdefoe\Kindred\Api\SimilarController;
 use Ernestdefoe\Kindred\Console\IndexCommand;
-use Ernestdefoe\Kindred\ForgetOnRename;
+use Ernestdefoe\Kindred\OnRename;
 use Flarum\Discussion\Event\Renamed;
 use Flarum\Extend;
 
@@ -22,11 +22,13 @@ return [
     (new Extend\Routes('api'))
         ->get('/kindred/{id}', 'ernestdefoe-kindred.similar', SimilarController::class),
 
-    // A renamed discussion matches different things; its cached list goes.
+    // Each title's words, for matching without a scan of every title: stored
+    // when a discussion is created and replaced when it is renamed (which also
+    // drops its cached list). Other saves, such as a reply's counters, leave
+    // them alone.
     (new Extend\Event())
-        ->listen(Renamed::class, ForgetOnRename::class)
-        // Each title's words, for matching without a scan of every title.
-        ->listen('eloquent.saved: Flarum\\Discussion\\Discussion', 'Ernestdefoe\\Kindred\\WordIndex@saved'),
+        ->listen('eloquent.created: Flarum\\Discussion\\Discussion', 'Ernestdefoe\\Kindred\\WordIndex@created')
+        ->listen(Renamed::class, OnRename::class),
 
     (new Extend\Console())
         ->command(IndexCommand::class),

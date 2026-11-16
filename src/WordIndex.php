@@ -102,13 +102,9 @@ class WordIndex
         }
     }
 
-    /** Keeps a discussion's words in step with its title. */
-    public function saved(Discussion $discussion): void
+    /** A new discussion's words (renames go through OnRename). */
+    public function created(Discussion $discussion): void
     {
-        // Created just now, or renamed. A save that only moved its counters
-        // (every reply does) leaves the words alone.
-        if (($discussion->wasRecentlyCreated && ! $discussion->getChanges()) || $discussion->wasChanged('title')) {
-            $this->index((int) $discussion->id, (string) $discussion->title);
-        }
+        $this->index((int) $discussion->id, (string) $discussion->title);
     }
 }

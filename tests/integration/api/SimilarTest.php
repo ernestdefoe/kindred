@@ -211,6 +211,11 @@ class SimilarTest extends TestCase
         ]));
         $this->assertSame(200, $response->getStatusCode());
 
+        $words = $this->db()->table('kindred_words')->where('discussion_id', 1)->orderBy('word')->pluck('word')->all();
+        $expected = $this->app()->getContainer()->make(WordIndex::class)->keysOf('Bicycle gears');
+        sort($expected);
+        $this->assertSame($expected, $words, 'Renaming replaces the words');
+
         $this->assertSame(['Bicycle gears slipping'], $this->titles(1, 1));
     }
 
